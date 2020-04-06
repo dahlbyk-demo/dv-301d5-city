@@ -19,7 +19,7 @@ app.get('/paypal', (request, response) => {
 });
 
 app.get('/weather', (request, response) => {
-  response.send('Weather!');
+  response.send('Weather.');
 });
 
 // Make sure the server is listening for requests
