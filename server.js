@@ -11,7 +11,7 @@ const PORT = process.env.PORT;
 const app = express();
 
 app.get('/', (request, response) => {
-  response.send('Home Page!');
+  response.send('City Explorer Goes Here');
 });
 
 // Make sure the server is listening for requests
