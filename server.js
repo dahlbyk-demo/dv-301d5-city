@@ -18,5 +18,9 @@ app.get('/paypal', (request, response) => {
   response.send(process.env.PAYPAL_URL);
 });
 
+app.get('/weather', (request, response) => {
+  response.send('Weather.');
+});
+
 // Make sure the server is listening for requests
 app.listen(PORT, () => console.log(`App is listening on ${PORT}`));
