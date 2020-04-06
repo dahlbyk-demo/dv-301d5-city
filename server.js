@@ -30,6 +30,17 @@ app.get('/weather', (request, response) => {
   response.send('Weather.');
 });
 
+// Add /location route
+app.get('/location', locationHandler);
+
+// Route Handler
+function locationHandler(request, response) {
+  const geoData = require('./data/geo.json');
+  const city = request.query.city;
+  const location = new Location(city, geoData);
+  response.send(location);
+}
+
 // Has to happen after everything else
 app.use(notFoundHandler);
 // Has to happen after the error might have occurred
@@ -52,4 +63,11 @@ function notFoundHandler(request, response) {
   response.status(404).json({
     notFound: true,
   });
+}
+
+function Location(city, geoData) {
+  this.search_query = city; // "cedar rapids"
+  this.formatted_query = geoData[0].display_name; // "Cedar Rapids, Iowa"
+  this.latitude = parseFloat(geoData[0].lat);
+  this.longitude = parseFloat(geoData[0].lon);
 }
