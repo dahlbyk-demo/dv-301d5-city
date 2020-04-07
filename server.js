@@ -7,6 +7,7 @@ dotenv.config();
 // Application Dependencies
 const express = require('express');
 const cors = require('cors');
+const superagent = require('superagent');
 
 // Application Setup
 const PORT = process.env.PORT;
@@ -31,10 +32,29 @@ app.get('/location', locationHandler);
 
 // Route Handler
 function locationHandler(request, response) {
-  const geoData = require('./data/geo.json');
+  // const geoData = require('./data/geo.json');
   const city = request.query.city;
-  const location = new Location(city, geoData);
-  response.send(location);
+
+  const url = 'https://us1.locationiq.com/v1/search.php';
+  superagent.get(url)
+    .query({
+      key: process.env.GEO_KEY,
+      q: city, // query
+      format: 'json'
+    })
+    .then(locationResponse => {
+      let geoData = locationResponse.body;
+      // console.log(geoData);
+
+      const location = new Location(city, geoData);
+      response.send(location);
+    })
+    .catch(err => {
+      console.log(err);
+      errorHandler(err, request, response);
+    });
+
+  // response.send('oops');
 }
 
 app.get('/weather', weatherHandler);
