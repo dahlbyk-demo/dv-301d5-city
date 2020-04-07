@@ -26,10 +26,6 @@ app.get('/paypal', (request, response) => {
   response.send(process.env.PAYPAL_URL);
 });
 
-app.get('/weather', (request, response) => {
-  response.send('Weather.');
-});
-
 // Add /location route
 app.get('/location', locationHandler);
 
@@ -39,6 +35,24 @@ function locationHandler(request, response) {
   const city = request.query.city;
   const location = new Location(city, geoData);
   response.send(location);
+}
+
+app.get('/weather', weatherHandler);
+
+function weatherHandler(request, response){
+  const weatherData = require('./data/darksky.json');
+
+  const latitude = request.query.latitude;
+  const longitude = request.query.longitude;
+
+  console.log('/weather', { latitude, longitude });
+
+  const weatherResults = [];
+  weatherData.daily.data.forEach(dailyWeather => {
+    weatherResults.push(new Weather(dailyWeather));
+  });
+
+  response.send(weatherResults);
 }
 
 // Has to happen after everything else
@@ -70,4 +84,9 @@ function Location(city, geoData) {
   this.formatted_query = geoData[0].display_name; // "Cedar Rapids, Iowa"
   this.latitude = parseFloat(geoData[0].lat);
   this.longitude = parseFloat(geoData[0].lon);
+}
+
+function Weather(weatherData) {
+  this.forecast = weatherData.summary;
+  this.time = new Date(weatherData.time * 1000);
 }
