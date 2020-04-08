@@ -8,6 +8,11 @@ dotenv.config();
 const express = require('express');
 const cors = require('cors');
 const superagent = require('superagent');
+const pg = require('pg');
+
+// Database Connection Setup
+const client = new pg.Client(process.env.DATABASE_URL);
+client.on('error', err => { throw err; });
 
 // Application Setup
 const PORT = process.env.PORT;
@@ -124,7 +129,15 @@ app.use(notFoundHandler);
 app.use(errorHandler); // Error Middleware
 
 // Make sure the server is listening for requests
-app.listen(PORT, () => console.log(`App is listening on ${PORT}`));
+client.connect()
+  .then(() => {
+    console.log('PG connected!');
+
+    app.listen(PORT, () => console.log(`App is listening on ${PORT}`));
+  })
+  .catch(err => {
+    throw `PG error!: ${err.message}`
+  });
 
 // Helper Functions
 
