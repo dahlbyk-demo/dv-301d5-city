@@ -11,8 +11,9 @@ const superagent = require('superagent');
 const pg = require('pg');
 
 // Database Connection Setup
-if (!process.env.DATABASE_URL)
+if (!process.env.DATABASE_URL) {
   throw 'Missing DATABASE_URL';
+}
 
 const client = new pg.Client(process.env.DATABASE_URL);
 client.on('error', err => { throw err; });
@@ -125,6 +126,39 @@ function weatherHandler(request, response){
 
   response.send(weatherResults);
 }
+
+// Books!
+app.get('/books', (request, response) => {
+  const SQL = 'SELECT * FROM Books';
+  client.query(SQL)
+    .then(results => {
+      console.log(results);
+
+      // let rowCount = results.rowCount;
+      // let rows = results.rows;
+
+      let { rowCount, rows } = results;
+
+      if (rowCount === 0) {
+        // TODO: go to the API and get my thing
+        response.send({
+          error: true,
+          message: 'Read more, dummy'
+        });
+
+      } else {
+
+        response.send({
+          error: false,
+          results: rows,
+        })
+      }
+    })
+    .catch(err => {
+      console.log(err);
+      errorHandler(err, request, response);
+    });
+})
 
 // Has to happen after everything else
 app.use(notFoundHandler);
