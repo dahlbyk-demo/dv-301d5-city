@@ -147,7 +147,6 @@ app.get('/books', (request, response) => {
         });
 
       } else {
-
         response.send({
           error: false,
           results: rows,
@@ -160,7 +159,35 @@ app.get('/books', (request, response) => {
     });
 })
 
-// Has to happen after everything else
+// NORMALLY DO NOT CREATE STUFF IN A GET. PLEASE.
+app.get('/books/add', (request, response) => {
+  let { title, author, genre } = request.query; // destructuring
+  let SQL = `
+    INSERT INTO Books (title, author, genre)
+    VALUES($1, $2, $3)
+    RETURNING *
+  `;
+  let SQLvalues = [title, author, genre];
+  client.query(SQL, SQLvalues)
+    .then(results => {
+      response.send(results);
+    })
+    .catch(err => {
+      console.log(err);
+      errorHandler(err, request, response);
+    });
+
+  /* NEVER EVER EVER DO THIS
+  `
+    INSERT INTO Books (title, author, genre)
+    VALUES('${title}', '${author}', '${genre}')
+  `;
+  // SQL Injection
+  // title = "', 'whatever', 'whatever'); DELETE FROM Books; --"
+  */
+})
+
+
 app.use(notFoundHandler);
 // Has to happen after the error might have occurred
 app.use(errorHandler); // Error Middleware
