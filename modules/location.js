@@ -15,7 +15,7 @@ function getLocationFromCache(city) {
   return client.query(SQL, parameters)
     .then(result => {
       if (result.rowCount > 0) {
-        return new Location(result.rows[0]);
+        return (result.rows[0]);
       }
       else {
         return null;
@@ -56,15 +56,22 @@ function locationHandler(request, response) {
         response.send(location);
       }
       else {
-        return getLocationFromAPI(city, response);
+        return getLocationFromAPI(city)
+          .then(location => {
+            response.send(location)
+          })
       }
     })
+    .catch(err => {
+      console.log(err);
+      errorHandler(err, request, response);
+    });
 }
 
-function getLocationFromAPI(city, response) {
+function getLocationFromAPI(city) {
   console.log('Requesting location from API', city)
   const url = 'https://us1.locationiq.com/v1/search.php';
-  superagent.get(url)
+  return superagent.get(url)
     .query({
       key: process.env.GEO_KEY,
       q: city, // query
@@ -76,18 +83,13 @@ function getLocationFromAPI(city, response) {
 
       const location = new Location(city, geoData);
 
-      setLocationInCache(location)
+      return setLocationInCache(location)
         .then(() => {
           console.log('Location has been cached', location);
 
-          response.send(location);
+          return location;
         });
-
     })
-    .catch(err => {
-      console.log(err);
-      errorHandler(err, request, response);
-    });
 }
 
 function Location(city, geoData) {
