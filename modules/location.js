@@ -53,14 +53,14 @@ function locationHandler(request, response) {
     .then(location => {
       console.log('Location from cache', location)
       if (location) {
-        response.send(location);
+        return location;
       }
       else {
         return getLocationFromAPI(city)
-          .then(location => {
-            response.send(location)
-          })
       }
+    })
+    .then(location => {
+      response.send(location)
     })
     .catch(err => {
       console.log(err);
