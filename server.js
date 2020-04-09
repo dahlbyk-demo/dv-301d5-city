@@ -119,30 +119,10 @@ function getLocationFromAPI(city, response) {
     });
 }
 
+const weatherHandler = require('./modules/weather');
+console.log('weatherHandler', weatherHandler)
 app.get('/weather', weatherHandler);
 
-function weatherHandler(request, response){
-  const weatherData = require('./data/darksky.json');
-
-  // const key = process.env.WEATHER_KEY;
-  // const lat = request.query.latitude;
-  // const lon = request.query.longitude;
-
-  // superagent.get('whatever weather')
-  //   .query({ key, lat, lon })
-  //   .then(...)
-
-  const latitude = request.query.latitude;
-  const longitude = request.query.longitude;
-  console.log('/weather', { latitude, longitude });
-
-  const weatherResults = [];
-  weatherData.daily.data.forEach(dailyWeather => {
-    weatherResults.push(new Weather(dailyWeather));
-  });
-
-  response.send(weatherResults);
-}
 
 // Books!
 app.get('/books', (request, response) => {
