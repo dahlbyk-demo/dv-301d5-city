@@ -7,16 +7,7 @@ dotenv.config();
 // Application Dependencies
 const express = require('express');
 const cors = require('cors');
-const superagent = require('superagent');
-const pg = require('pg');
 
-// Database Connection Setup
-if (!process.env.DATABASE_URL) {
-  throw 'Missing DATABASE_URL';
-}
-
-const client = new pg.Client(process.env.DATABASE_URL);
-client.on('error', err => { throw err; });
 
 // Application Setup
 const PORT = process.env.PORT;
@@ -37,155 +28,22 @@ app.get('/paypal', (request, response) => {
 });
 
 // Add /location route
+const locationHandler = require('./modules/location');
 app.get('/location', locationHandler);
 
-const locationCache = {
-  // "cedar rapids, ia": { display_name: 'Cedar Rapids', lat: 5, lon: 1 }
-};
-
-function getLocationFromCache(city) {
-  const cacheEntry = locationCache[city];
-
-  if (cacheEntry) {
-
-    // // Older than 5 seconds? Remove from cache.
-    // if (cacheEntry.cacheTime < Date.now() - 5000) {
-    //   delete locationCache[city];
-    //   return null;
-    // }
-
-    return cacheEntry.location;
-  }
-
-  return null;
-}
-
-function setLocationInCache(city, location) {
-  locationCache[city] = {
-    cacheTime: new Date(),
-    location,
-  };
-  console.log('Location cache update', locationCache);
-}
-
-// Route Handler
-function locationHandler(request, response) {
-  // const geoData = require('./data/geo.json');
-  const city = request.query.city;
-
-  const locationFromCache = getLocationFromCache(city);
-  if (locationFromCache) {
-    response.send(locationFromCache);
-    return; // or use an else { ... } below
-  }
-
-  const url = 'https://us1.locationiq.com/v1/search.php';
-  superagent.get(url)
-    .query({
-      key: process.env.GEO_KEY,
-      q: city, // query
-      format: 'json'
-    })
-    .then(locationResponse => {
-      let geoData = locationResponse.body;
-      // console.log(geoData);
-
-      const location = new Location(city, geoData);
-      setLocationInCache(city, location);
-      response.send(location);
-    })
-    .catch(err => {
-      console.log(err);
-      errorHandler(err, request, response);
-    });
-
-  // response.send('oops');
-}
-
+const weatherHandler = require('./modules/weather');
+console.log('weatherHandler', weatherHandler)
 app.get('/weather', weatherHandler);
 
-function weatherHandler(request, response){
-  const weatherData = require('./data/darksky.json');
-
-  // const key = process.env.WEATHER_KEY;
-  // const lat = request.query.latitude;
-  // const lon = request.query.longitude;
-
-  // superagent.get('whatever weather')
-  //   .query({ key, lat, lon })
-  //   .then(...)
-
-  const latitude = request.query.latitude;
-  const longitude = request.query.longitude;
-  console.log('/weather', { latitude, longitude });
-
-  const weatherResults = [];
-  weatherData.daily.data.forEach(dailyWeather => {
-    weatherResults.push(new Weather(dailyWeather));
-  });
-
-  response.send(weatherResults);
-}
+const booksModule = require('./modules/books');
+console.log('booksModule', booksModule);
+const { booksHandler, booksAddHandler } = booksModule;
 
 // Books!
-app.get('/books', (request, response) => {
-  const SQL = 'SELECT * FROM Books';
-  client.query(SQL)
-    .then(results => {
-      console.log(results);
-
-      // let rowCount = results.rowCount;
-      // let rows = results.rows;
-
-      let { rowCount, rows } = results;
-
-      if (rowCount === 0) {
-        // TODO: go to the API and get my thing
-        response.send({
-          error: true,
-          message: 'Read more, dummy'
-        });
-
-      } else {
-        response.send({
-          error: false,
-          results: rows,
-        })
-      }
-    })
-    .catch(err => {
-      console.log(err);
-      errorHandler(err, request, response);
-    });
-})
+app.get('/books', booksHandler)
 
 // NORMALLY DO NOT CREATE STUFF IN A GET. PLEASE.
-app.get('/books/add', (request, response) => {
-  let { title, author, genre } = request.query; // destructuring
-  let SQL = `
-    INSERT INTO Books (title, author, genre)
-    VALUES($1, $2, $3)
-    RETURNING *
-  `;
-  let SQLvalues = [title, author, genre];
-  client.query(SQL, SQLvalues)
-    .then(results => {
-      response.send(results);
-    })
-    .catch(err => {
-      console.log(err);
-      errorHandler(err, request, response);
-    });
-
-  /* NEVER EVER EVER DO THIS
-  `
-    INSERT INTO Books (title, author, genre)
-    VALUES('${title}', '${author}', '${genre}')
-  `;
-  // SQL Injection
-  // title = "', 'whatever', 'whatever'); DELETE FROM Books; --"
-  */
-})
+app.get('/books/add', booksAddHandler);
 
 
 app.use(notFoundHandler);
@@ -193,6 +51,7 @@ app.use(notFoundHandler);
 app.use(errorHandler); // Error Middleware
 
 // Make sure the server is listening for requests
+const client = require('./util/db');
 client.connect()
   .then(() => {
     console.log('PG connected!');
@@ -217,16 +76,4 @@ function notFoundHandler(request, response) {
   response.status(404).json({
     notFound: true,
   });
-}
-
-function Location(city, geoData) {
-  this.search_query = city; // "cedar rapids"
-  this.formatted_query = geoData[0].display_name; // "Cedar Rapids, Iowa"
-  this.latitude = parseFloat(geoData[0].lat);
-  this.longitude = parseFloat(geoData[0].lon);
-}
-
-function Weather(weatherData) {
-  this.forecast = weatherData.summary;
-  this.time = new Date(weatherData.time * 1000).toDateString();
 }
