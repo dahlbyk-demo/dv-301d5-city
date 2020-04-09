@@ -39,6 +39,27 @@ app.get('/paypal', (request, response) => {
 // Add /location route
 app.get('/location', locationHandler);
 
+// Returns a promise!
+function setLocationInCache(location) {
+  const { search_query, formatted_query, latitude, longitude } = location;
+
+  const SQL = `
+    INSERT INTO Locations (search_query, formatted_query, latitude, longitude)
+    VALUES ($1, $2, $3, $4)
+    -- RETURNING *
+  `;
+  const parameters = [search_query, formatted_query, latitude, longitude];
+
+  // Return the promise that we'll have done a query
+  return client.query(SQL, parameters)
+    .then(result => {
+      console.log('Cache Location', result);
+    })
+    .catch(err => {
+      console.error('Failed to cache location', err);
+    })
+}
+
 // Route Handler
 function locationHandler(request, response) {
   // const geoData = require('./data/geo.json');
@@ -56,7 +77,14 @@ function locationHandler(request, response) {
       // console.log(geoData);
 
       const location = new Location(city, geoData);
-      response.send(location);
+
+      setLocationInCache(location)
+        .then(() => {
+          console.log('Location has been cached', location);
+
+          response.send(location);
+        });
+
     })
     .catch(err => {
       console.log(err);
