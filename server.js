@@ -39,29 +39,10 @@ app.get('/paypal', (request, response) => {
 // Add /location route
 app.get('/location', locationHandler);
 
-const locationCache = {
-  // "cedar rapids, ia": { display_name: 'Cedar Rapids', lat: 5, lon: 1 }
-};
-
-function getLocationFromCache(city) {
-  return locationCache[city];
-}
-
-function setLocationInCache(city, location) {
-  locationCache[city] = location;
-  console.log('Location cache update', locationCache);
-}
-
 // Route Handler
 function locationHandler(request, response) {
   // const geoData = require('./data/geo.json');
   const city = request.query.city;
-
-  const locationFromCache = getLocationFromCache(city);
-  if (locationFromCache) {
-    response.send(locationFromCache);
-    return; // or use an else { ... } below
-  }
 
   const url = 'https://us1.locationiq.com/v1/search.php';
   superagent.get(url)
@@ -75,7 +56,6 @@ function locationHandler(request, response) {
       // console.log(geoData);
 
       const location = new Location(city, geoData);
-      setLocationInCache(city, location);
       response.send(location);
     })
     .catch(err => {
