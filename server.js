@@ -8,15 +8,8 @@ dotenv.config();
 const express = require('express');
 const cors = require('cors');
 const superagent = require('superagent');
-const pg = require('pg');
 
-// Database Connection Setup
-if (!process.env.DATABASE_URL) {
-  throw 'Missing DATABASE_URL';
-}
-
-const client = new pg.Client(process.env.DATABASE_URL);
-client.on('error', err => { throw err; });
+const client = require('./util/db');
 
 // Application Setup
 const PORT = process.env.PORT;
@@ -123,66 +116,15 @@ const weatherHandler = require('./modules/weather');
 console.log('weatherHandler', weatherHandler)
 app.get('/weather', weatherHandler);
 
+const booksModule = require('./modules/books');
+console.log('booksModule', booksModule);
+const { booksHandler, booksAddHandler } = booksModule;
 
 // Books!
-app.get('/books', (request, response) => {
-  const SQL = 'SELECT * FROM Books';
-  client.query(SQL)
-    .then(results => {
-      console.log(results);
-
-      // let rowCount = results.rowCount;
-      // let rows = results.rows;
-
-      let { rowCount, rows } = results;
-
-      if (rowCount === 0) {
-        // TODO: go to the API and get my thing
-        response.send({
-          error: true,
-          message: 'Read more, dummy'
-        });
-
-      } else {
-        response.send({
-          error: false,
-          results: rows,
-        })
-      }
-    })
-    .catch(err => {
-      console.log(err);
-      errorHandler(err, request, response);
-    });
-})
+app.get('/books', booksHandler)
 
 // NORMALLY DO NOT CREATE STUFF IN A GET. PLEASE.
-app.get('/books/add', (request, response) => {
-  let { title, author, genre } = request.query; // destructuring
-  let SQL = `
-    INSERT INTO Books (title, author, genre)
-    VALUES($1, $2, $3)
-    RETURNING *
-  `;
-  let SQLvalues = [title, author, genre];
-  client.query(SQL, SQLvalues)
-    .then(results => {
-      response.send(results);
-    })
-    .catch(err => {
-      console.log(err);
-      errorHandler(err, request, response);
-    });
-
-  /* NEVER EVER EVER DO THIS
-  `
-    INSERT INTO Books (title, author, genre)
-    VALUES('${title}', '${author}', '${genre}')
-  `;
-  // SQL Injection
-  // title = "', 'whatever', 'whatever'); DELETE FROM Books; --"
-  */
-})
+app.get('/books/add', booksAddHandler);
 
 
 app.use(notFoundHandler);
@@ -221,9 +163,4 @@ function Location(city, geoData) {
   this.formatted_query = geoData[0].display_name; // "Cedar Rapids, Iowa"
   this.latitude = parseFloat(geoData[0].lat);
   this.longitude = parseFloat(geoData[0].lon);
-}
-
-function Weather(weatherData) {
-  this.forecast = weatherData.summary;
-  this.time = new Date(weatherData.time * 1000).toDateString();
 }
