@@ -12,7 +12,15 @@ function getLocationFromCache(city) {
   `;
   const parameters = [city];
 
-  return client.query(SQL, parameters);
+  return client.query(SQL, parameters)
+    .then(result => {
+      if (result.rowCount > 0) {
+        return new Location(result.rows[0]);
+      }
+      else {
+        return null;
+      }
+    })
 }
 
 // Returns a promise!
@@ -42,11 +50,10 @@ function locationHandler(request, response) {
   const city = request.query.city;
 
   getLocationFromCache(city)
-    .then(result => {
-      console.log('Location from cache', result.rows)
-      let { rowCount, rows } = result;
-      if (rowCount > 0) {
-        response.send(rows[0]);
+    .then(location => {
+      console.log('Location from cache', location)
+      if (location) {
+        response.send(location);
       }
       else {
         return getLocationFromAPI(city, response);
