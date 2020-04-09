@@ -39,6 +39,18 @@ app.get('/paypal', (request, response) => {
 // Add /location route
 app.get('/location', locationHandler);
 
+function getLocationFromCache(city) {
+  const SQL = `
+    SELECT *
+    FROM Locations
+    WHERE search_query = $1
+    LIMIT 1
+  `;
+  const parameters = [city];
+
+  return client.query(SQL, parameters);
+}
+
 // Returns a promise!
 function setLocationInCache(location) {
   const { search_query, formatted_query, latitude, longitude } = location;
@@ -65,6 +77,21 @@ function locationHandler(request, response) {
   // const geoData = require('./data/geo.json');
   const city = request.query.city;
 
+  getLocationFromCache(city)
+    .then(result => {
+      console.log('Location from cache', result.rows)
+      let { rowCount, rows } = result;
+      if (rowCount > 0) {
+        response.send(rows[0]);
+      }
+      else {
+        return getLocationFromAPI(city, response);
+      }
+    })
+}
+
+function getLocationFromAPI(city, response) {
+  console.log('Requesting location from API', city)
   const url = 'https://us1.locationiq.com/v1/search.php';
   superagent.get(url)
     .query({
@@ -90,8 +117,6 @@ function locationHandler(request, response) {
       console.log(err);
       errorHandler(err, request, response);
     });
-
-  // response.send('oops');
 }
 
 app.get('/weather', weatherHandler);
